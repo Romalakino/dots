@@ -1,0 +1,13 @@
+#!/bin/bash
+# Power menu for sway using wofi
+
+options="Shutdown\nReboot\nLogout\nLock"
+
+selected=$(echo -e "$options" | wofi --dmenu -p "Power" -W 300 -H 200)
+
+case $selected in
+    Shutdown) sudo shutdown -h now ;;
+    Reboot)   sudo shutdown -r now ;;
+    Logout)   swaymsg exit ;;
+    Lock)     swaylock -c 000000 ;;
+esac

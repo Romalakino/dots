@@ -1,0 +1,34 @@
+# Swaylock — Monochrome
+
+color=000000
+font=JetBrainsMono Nerd Font
+font-size=24
+
+inside-color=000000
+inside-ver-color=33333322
+inside-wrong-color=ffffff22
+inside-clear-color=33333322
+inside-cap-color=33333322
+
+line-color=333333
+line-ver-color=ffffff
+line-wrong-color=ffffff
+line-clear-color=ffffff
+line-cap-color=ffffff
+
+ring-color=444444
+ring-ver-color=ffffff
+ring-wrong-color=ffffff
+ring-clear-color=ffffff
+ring-cap-color=ffffff
+
+text-color=ffffff
+text-ver-color=ffffff
+text-wrong-color=ffffff
+text-clear-color=ffffff
+text-cap-color=ffffff
+
+key-hl-color=ffffff
+bs-hl-color=ffffff
+
+separator-color=333333

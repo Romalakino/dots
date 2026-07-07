@@ -1,0 +1,5 @@
+# Void Linux Setup
+/tmp/
+*.bak
+*.bak.*
+

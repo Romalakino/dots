@@ -1,0 +1,100 @@
+#!/bin/bash
+# VPN server picker — wofi menu with ping check
+
+SUB_URL="https://sub.foxnezia.dev/kaJXx-XkTQ6ZUPm6"
+HWID="FMg1GUgQd074"
+SERVERS_FILE="/tmp/foxnezia-servers.txt"
+
+fetch_servers() {
+    curl -s --max-time 10 -H "X-HWID: $HWID" "$SUB_URL" 2>/dev/null | base64 -d 2>/dev/null > "$SERVERS_FILE"
+}
+
+get_reality_servers() {
+    grep "security=reality" "$SERVERS_FILE"
+}
+
+parse_server() {
+    local line="$1"
+    python3 -c "
+import urllib.parse
+line = '''$(echo "$line" | sed "s/'/\\\\'/g")'''
+name = urllib.parse.unquote(line.split('#')[1]) if '#' in line else 'Unknown'
+params_str = line.split('?')[1].split('#')[0]
+params = dict(p.split('=',1) for p in params_str.split('&') if '=' in p)
+host_port = line.split('@')[1].split('?')[0]
+h, p = host_port.split(':')
+uuid = line.split('@')[0][8:]
+print(f'{h}|{p}|{uuid}|{params.get(\"sni\",\"\")}|{params.get(\"pbk\",\"\")}|{params.get(\"sid\",\"\")}|{params.get(\"fp\",\"firefox\")}|{name}')
+" 2>/dev/null
+}
+
+ping_server() {
+    local host="$1" port="$2"
+    local start=$(date +%s%N)
+    timeout 3 bash -c "echo >/dev/tcp/$host/$port" 2>/dev/null
+    local exit_code=$?
+    local end=$(date +%s%N)
+    local ms=$(( (end - start) / 1000000 ))
+    if [ $exit_code -eq 0 ]; then
+        echo "${ms}ms"
+    else
+        echo "timeout"
+    fi
+}
+
+# Fetch and parse servers
+fetch_servers
+reality_servers=$(get_reality_servers)
+if [ -z "$reality_servers" ]; then
+    notify-send "VPN" "Reality серверы не найдены"
+    exit 1
+fi
+
+# Build menu list with numbers
+server_lines=()
+menu=""
+i=0
+while IFS= read -r line; do
+    i=$((i + 1))
+    parsed=$(parse_server "$line")
+    name=$(echo "$parsed" | awk -F'|' '{print $8}')
+    host=$(echo "$parsed" | awk -F'|' '{print $1}')
+    server_lines+=("$line|$parsed")
+    menu="${menu}${i}. ${name}\n"
+done <<< "$reality_servers"
+
+# Show server list
+selected=$(echo -e "$menu" | wofi --dmenu -p "VPN Server" -W 400 -H 500 -I 2>/dev/null)
+if [ -z "$selected" ]; then
+    exit 0
+fi
+
+# Extract number from selection
+num=$(echo "$selected" | grep -oP '^\d+')
+if [ -z "$num" ] || [ "$num" -gt "${#server_lines[@]}" ]; then
+    exit 1
+fi
+
+# Get server data
+idx=$((num - 1))
+server_line="${server_lines[$idx]}"
+parsed=$(parse_server "$server_line")
+host=$(echo "$parsed" | awk -F'|' '{print $1}')
+port=$(echo "$parsed" | awk -F'|' '{print $2}')
+uuid=$(echo "$parsed" | awk -F'|' '{print $3}')
+sni=$(echo "$parsed" | awk -F'|' '{print $4}')
+pbk=$(echo "$parsed" | awk -F'|' '{print $5}')
+sid=$(echo "$parsed" | awk -F'|' '{print $6}')
+fp=$(echo "$parsed" | awk -F'|' '{print $7}')
+name=$(echo "$parsed" | awk -F'|' '{print $8}')
+
+# Ping the server
+notify-send "VPN" "Проверяю ${name}..."
+ping_result=$(ping_server "$host" "$port")
+
+# Show confirmation with ping
+confirm=$(echo -e "Подключить\nНазад" | wofi --dmenu -p "${name} — ${ping_result}" -W 400 -H 200 -I 2>/dev/null)
+
+if [ "$confirm" = "Подключить" ]; then
+    /home/vlad/.local/bin/vpn-toggle connect "$num"
+fi

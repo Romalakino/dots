@@ -1,0 +1,93 @@
+/* Waybar — Monochrome */
+
+* {
+    font-family: "JetBrainsMono Nerd Font Mono", "Font Awesome 6 Free", "Noto Sans", sans-serif;
+    font-size: 13px;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: rgba(0, 0, 0, 0.85);
+    color: #ffffff;
+    border-radius: 12px;
+    border-bottom: 1px solid #333333;
+}
+
+#workspaces button {
+    padding: 0 5px;
+    color: #666666;
+    background-color: transparent;
+    border-radius: 12px;
+    min-width: 20px;
+}
+
+#workspaces button:hover {
+    background: #222222;
+    color: #ffffff;
+}
+
+#workspaces button.focused {
+    color: #000000;
+    background: #ffffff;
+    border-radius: 12px;
+}
+
+#clock {
+    color: #000000;
+    background: #ffffff;
+    padding: 0 10px;
+    margin: 0;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+#memory {
+    color: #ffffff;
+    background: #222222;
+    padding: 0 8px;
+    margin: 0 0 0 0;
+    border-radius: 12px;
+}
+
+#custom-vpn {
+    color: #ffffff;
+    background: #222222;
+    padding: 0 8px;
+    margin: 0 0 0 0;
+    border-radius: 12px;
+}
+
+#custom-vpn ON {
+    color: #000000;
+    background: #ffffff;
+}
+
+#custom-vpn OFF {
+    color: #666666;
+    background: #111111;
+}
+
+#custom-vpn STARTING,
+#custom-vpn STOPPING {
+    color: #000000;
+    background: #888888;
+}
+
+#custom-vpn FAILED {
+    color: #000000;
+    background: #ffffff;
+    text-decoration: line-through;
+}
+
+#custom-power {
+    color: #ffffff;
+    background: #222222;
+    padding: 0 8px;
+    margin: 0 0 0 0;
+    border-radius: 12px;
+}
+
+#custom-power:hover {
+    background: #ffffff;
+    color: #000000;
+}

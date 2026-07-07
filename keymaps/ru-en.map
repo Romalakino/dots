@@ -1,0 +1,160 @@
+! Dual English/Russian keymap - ЙЦУКЕН layout
+! CapsLock toggles between English (plain) and Russian (CapsShift)
+keymaps 0-2,4-6,8-9,12,256-258
+alt_is_meta
+
+include "qwerty-layout"
+include "linux-with-alt-and-altgr"
+include "compose.latin1"
+include "euro1.map"
+strings as usual
+
+! 12 slots: 0=plain 1=shift 2=altgr 4=ctrl 5=ctrl+sh 6=alt 8=altgr+alt 9=sh+alt 12=ctrl+alt
+!           256=caps 257=caps+sh 258=caps+altgr
+
+keycode   1 = Escape
+keycode   2 = one              exclam
+keycode   3 = two              at               at               nul              nul
+keycode   4 = three            numbersign
+	control	keycode   4 = Escape
+keycode   5 = four             dollar           dollar           Control_backslash
+keycode   6 = five             percent
+	control	keycode   6 = Control_bracketright
+keycode   7 = six              asciicircum
+	control	keycode   7 = Control_asciicircum
+keycode   8 = seven            ampersand        braceleft        Control_underscore
+keycode   9 = eight            asterisk         bracketleft      Delete
+keycode  10 = nine             parenleft        bracketright
+keycode  11 = zero             parenright       braceright
+keycode  12 = minus            underscore       backslash        Control_underscore Control_underscore
+keycode  13 = equal            plus
+keycode  14 = Delete
+keycode  15 = Tab
+	shift	keycode  15 = Meta_Tab
+keycode  26 = bracketleft      braceleft
+	control	keycode  26 = Escape
+keycode  27 = bracketright     braceright       asciitilde       Control_bracketright
+keycode  28 = Return
+	alt	keycode  28 = Meta_Control_m
+keycode  29 = Control
+keycode  39 = semicolon        colon
+keycode  40 = apostrophe       quotedbl
+	control	keycode  40 = Control_g
+keycode  41 = grave            asciitilde
+	control	keycode  41 = nul
+keycode  42 = Shift
+keycode  43 = backslash        bar
+	control	keycode  43 = Control_backslash
+keycode  51 = comma            less
+keycode  52 = period           greater
+keycode  53 = slash            question
+	control keycode  53 = Control_underscore
+	control shift keycode  53 = Delete
+keycode  54 = Shift
+keycode  56 = Alt
+keycode  57 = space
+	control	keycode  57 = nul
+keycode  58 = Caps_Lock
+keycode  86 = less             greater          bar
+keycode  97 = Control
+
+! Row 1: 12 values per keycode
+!        plain  shift  altgr  ctrl   c+sh   alt    alt+ag  sh+alt ctrl+alt caps   caps+sh caps+ag
+keycode  16 = q    Q      q      Control_q Control_q Meta_q Meta_q Meta_q  Control_q U+0439 U+0419 U+0439
+keycode  17 = w    W      w      Control_w Control_w Meta_w Meta_w Meta_w  Control_w U+0446 U+0426 U+0446
+keycode  18 = e    E      e      Control_e Control_e Meta_e Meta_e Meta_e  Control_e U+0443 U+0423 U+0443
+keycode  19 = r    R      r      Control_r Control_r Meta_r Meta_r Meta_r  Control_r U+043A U+041A U+043A
+keycode  20 = t    T      t      Control_t Control_t Meta_t Meta_t Meta_t  Control_t U+0435 U+0415 U+0435
+keycode  21 = y    Y      y      Control_y Control_y Meta_y Meta_y Meta_y  Control_y U+043D U+041D U+043D
+keycode  22 = u    U      u      Control_u Control_u Meta_u Meta_u Meta_u  Control_u U+0433 U+0413 U+0433
+keycode  23 = i    I      i      Control_i Control_i Meta_i Meta_i Meta_i  Control_i U+0448 U+0428 U+0448
+keycode  24 = o    O      o      Control_o Control_o Meta_o Meta_o Meta_o  Control_o U+0449 U+0429 U+0449
+keycode  25 = p    P      p      Control_p Control_p Meta_p Meta_p Meta_p  Control_p U+0437 U+0417 U+0437
+
+! Row 2
+keycode  30 = a    A      a      Control_a Control_a Meta_a Meta_a Meta_a  Control_a U+0444 U+0424 U+0444
+keycode  31 = s    S      s      Control_s Control_s Meta_s Meta_s Meta_s  Control_s U+044B U+042B U+044B
+keycode  32 = d    D      d      Control_d Control_d Meta_d Meta_d Meta_d  Control_d U+0432 U+0412 U+0432
+keycode  33 = f    F      f      Control_f Control_f Meta_f Meta_f Meta_f  Control_f U+0430 U+0410 U+0430
+keycode  34 = g    G      g      Control_g Control_g Meta_g Meta_g Meta_g  Control_g U+043F U+041F U+043F
+keycode  35 = h    H      h      Control_h Control_h Meta_h Meta_h Meta_h  Control_h U+0440 U+0420 U+0440
+keycode  36 = j    J      j      Control_j Control_j Meta_j Meta_j Meta_j  Control_j U+043E U+041E U+043E
+keycode  37 = k    K      k      Control_k Control_k Meta_k Meta_k Meta_k  Control_k U+043B U+041B U+043B
+keycode  38 = l    L      l      Control_l Control_l Meta_l Meta_l Meta_l  Control_l U+0434 U+0414 U+0434
+
+! Row 3
+keycode  44 = z    Z      z      Control_z Control_z Meta_z Meta_z Meta_z  Control_z U+044F U+042F U+044F
+keycode  45 = x    X      x      Control_x Control_x Meta_x Meta_x Meta_x  Control_x U+0447 U+0427 U+0447
+keycode  46 = c    C      c      Control_c Control_c Meta_c Meta_c Meta_c  Control_c U+0441 U+0421 U+0441
+keycode  47 = v    V      v      Control_v Control_v Meta_v Meta_v Meta_v  Control_v U+043C U+041C U+043C
+keycode  48 = b    B      b      Control_b Control_b Meta_b Meta_b Meta_b  Control_b U+0438 U+0418 U+0438
+keycode  49 = n    N      n      Control_n Control_n Meta_n Meta_n Meta_n  Control_n U+0442 U+0422 U+0442
+keycode  50 = m    M      m      Control_m Control_m Meta_m Meta_m Meta_m  Control_m U+044C U+042C U+044C
+
+! Function keys
+keycode  59 = F1
+	shift	keycode  59 = F11
+	alt	keycode  59 = Console_1
+	control	keycode  59 = F1
+keycode  60 = F2
+	shift	keycode  60 = F12
+	alt	keycode  60 = Console_2
+	control	keycode  60 = F2
+keycode  61 = F3
+	shift	keycode  61 = F13
+	alt	keycode  61 = Console_3
+	control	keycode  61 = F3
+keycode  62 = F4
+	shift	keycode  62 = F14
+	alt	keycode  62 = Console_4
+	control	keycode  62 = F4
+keycode  63 = F5
+	shift	keycode  63 = F15
+	alt	keycode  63 = Console_5
+	control	keycode  63 = F5
+keycode  64 = F6
+	shift	keycode  64 = F16
+	alt	keycode  64 = Console_6
+	control	keycode  64 = F6
+keycode  65 = F7
+	shift	keycode  65 = F17
+	alt	keycode  65 = Console_7
+	control	keycode  65 = F7
+keycode  66 = F8
+	shift	keycode  66 = F18
+	alt	keycode  66 = Console_8
+	control	keycode  66 = F8
+keycode  67 = F9
+	shift	keycode  67 = F19
+	alt	keycode  67 = Console_9
+	control	keycode  67 = F9
+keycode  68 = F10
+	shift	keycode  68 = F20
+	alt	keycode  68 = Console_10
+	control	keycode  68 = F10
+keycode  87 = F11
+	alt	keycode  87 = Console_11
+keycode  88 = F12
+	alt	keycode  88 = Console_12
+keycode  69 = Num_Lock
+keycode  70 = Scroll_Lock
+	shift	keycode  70 = Show_Memory
+	alt	keycode  70 = Show_Registers
+	control	keycode  70 = Show_State
+keycode  84 = Last_Console
+keycode  96 = KP_Enter
+keycode  98 = KP_Divide
+keycode  99 = Control_backslash
+keycode 100 = AltGr
+	alt keycode 100 = Compose
+keycode 101 = Break
+keycode 102 = Find
+keycode 103 = Up
+keycode 104 = Prior
+keycode 105 = Left
+keycode 106 = Right
+keycode 107 = Select
+keycode 108 = Down
+keycode 109 = Next
+keycode 110 = Insert
+keycode 111 = Remove

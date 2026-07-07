@@ -1,0 +1,128 @@
+#!/bin/bash
+# HTTP Proxy Toggle — transparent proxy via redsocks + iptables
+
+PROXY_FILE="/home/vlad/Загрузки/working-proxies.txt"
+REDSOCKS_CONF="/etc/redsocks.conf"
+STATUS_FILE="/tmp/http-proxy-status"
+
+start() {
+    echo "Ищу лучший прокси..."
+    best_proxy=""
+    best_time=999
+
+    while IFS= read -r proxy; do
+        # HTTP test with timing
+        start_time=$(date +%s%N)
+        result=$(curl -s --max-time 8 --proxy "$proxy" https://api.ipify.org 2>&1)
+        end_time=$(date +%s%N)
+        elapsed=$(( (end_time - start_time) / 1000000 ))
+
+        if [ $? -eq 0 ] && [ -n "$result" ]; then
+            echo "  $proxy → OK (${elapsed}ms) → $result"
+            if [ "$elapsed" -lt "$best_time" ]; then
+                best_proxy="$proxy"
+                best_time="$elapsed"
+            fi
+        else
+            echo "  $proxy → FAIL"
+        fi
+    done < "$PROXY_FILE"
+
+    if [ -z "$best_proxy" ]; then
+        echo "Рабочий прокси не найден!"
+        exit 1
+    fi
+
+    proxy_ip=$(echo "$best_proxy" | sed 's|http://||;s|:.*||')
+    proxy_port=$(echo "$best_proxy" | sed 's|.*:||')
+
+    echo "Лучший: $best_proxy (${best_time}ms)"
+
+    # Write redsocks config
+    sudo tee "$REDSOCKS_CONF" > /dev/null << EOF
+base {
+    log_debug = off;
+    log_info = on;
+    log = "syslog:daemon";
+    daemon = on;
+    redirector = iptables;
+}
+
+redsocks {
+    local_ip = 127.0.0.1;
+    local_port = 12345;
+    ip = $proxy_ip;
+    port = $proxy_port;
+    type = http;
+    login = "";
+    password = "";
+}
+
+dns {
+    tcp = on;
+    server = 1.1.1.1;
+    server = 8.8.8.8;
+}
+EOF
+
+    # Stop existing redsocks
+    sudo killall redsocks 2>/dev/null
+    sleep 0.5
+
+    # Start redsocks
+    sudo redsocks -c "$REDSOCKS_CONF" 2>&1
+    sleep 1
+
+    # iptables rules
+    sudo iptables -t nat -N REDSOCKS 2>/dev/null
+    sudo iptables -t nat -F REDSOCKS
+
+    # Exclude local
+    sudo iptables -t nat -A REDSOCKS -d 127.0.0.0/8 -j RETURN
+    sudo iptables -t nat -A REDSOCKS -d 192.168.0.0/16 -j RETURN
+    sudo iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
+    sudo iptables -t nat -A REDSOCKS -d 172.16.0.0/12 -j RETURN
+
+    # Redirect TCP
+    sudo iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 12345
+    sudo iptables -t nat -A OUTPUT -p tcp -j REDSOCKS
+
+    echo "ON" > "$STATUS_FILE"
+    echo "$best_proxy" > /tmp/http-proxy-server
+    notify-send "Proxy ON" "$best_proxy" 2>/dev/null
+    echo "Прокси ВКЛ: $best_proxy"
+}
+
+stop() {
+    sudo iptables -t nat -D OUTPUT -p tcp -j REDSOCKS 2>/dev/null
+    sudo iptables -t nat -F REDSOCKS 2>/dev/null
+    sudo iptables -t nat -X REDSOCKS 2>/dev/null
+    sudo killall redsocks 2>/dev/null
+
+    echo "OFF" > "$STATUS_FILE"
+    notify-send "Proxy OFF" "" 2>/dev/null
+    echo "Прокси ВЫКЛ"
+}
+
+status() {
+    if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
+        proxy=$(cat /tmp/http-proxy-server 2>/dev/null)
+        echo "ON → $proxy"
+    else
+        echo "OFF"
+    fi
+}
+
+case "$1" in
+    on)   start ;;
+    off)  stop ;;
+    toggle)
+        if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
+            stop
+        else
+            start
+        fi
+        ;;
+    status) status ;;
+    *) echo "Использование: $0 {on|off|toggle|status}" ;;
+esac

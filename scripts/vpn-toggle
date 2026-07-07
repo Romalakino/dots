@@ -1,0 +1,256 @@
+#!/bin/bash
+# Foxnezia VPN — transparent proxy via sing-box TUN
+# vpn-toggle {on|off|toggle|status|list}
+
+SUB_URL="https://sub.foxnezia.dev/kaJXx-XkTQ6ZUPm6"
+HWID="FMg1GUgQd074"
+SINGBOX_CONFIG="/home/vlad/.config/sing-box/config.json"
+SERVERS_FILE="/tmp/foxnezia-servers.txt"
+STATUS_FILE="/tmp/vpn-status"
+LOG_FILE="/tmp/sing-box.log"
+TUN_GW="172.19.0.1"
+VIA_WLO1="192.168.1.1"
+VPN_SERVER_FILE="/tmp/vpn-server-ip"
+VPN_NAME_FILE="/tmp/vpn-server-name"
+MAX_ATTEMPTS=3
+
+fetch_servers() {
+    curl -s --max-time 10 -H "X-HWID: $HWID" "$SUB_URL" 2>/dev/null | base64 -d 2>/dev/null > "$SERVERS_FILE"
+    local count=$(wc -l < "$SERVERS_FILE")
+    echo "Загружено серверов: $count"
+    [ "$count" -gt 0 ] && return 0 || return 1
+}
+
+build_config() {
+    local host="$1" port="$2" uuid="$3" sni="$4" pbk="$5" sid="$6" fp="$7"
+    cat > "$SINGBOX_CONFIG" << EOF
+{
+  "log": { "level": "warn" },
+  "dns": {
+    "servers": [
+      { "address": "1.1.1.1", "detour": "direct" }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun", "tag": "tun-in", "interface_name": "tun0",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true, "stack": "system"
+    },
+    { "type": "socks", "tag": "socks-in", "listen": "127.0.0.1", "listen_port": 10808 },
+    { "type": "http", "tag": "http-in", "listen": "127.0.0.1", "listen_port": 10809 }
+  ],
+  "route": {
+    "rules": [
+      { "ip_cidr": ["$host/32"], "outbound": "direct" },
+      { "ip_is_private": true, "outbound": "direct" },
+      { "protocol": "dns", "outbound": "direct" }
+    ],
+    "auto_detect_interface": true
+  },
+  "outbounds": [
+    {
+      "type": "vless", "tag": "proxy", "server": "$host", "server_port": $port, "uuid": "$uuid", "flow": "xtls-rprx-vision",
+      "tls": {
+        "enabled": true, "server_name": "$sni",
+        "utls": { "enabled": true, "fingerprint": "$fp" },
+        "reality": { "enabled": true, "public_key": "$pbk", "short_id": "$sid" }
+      }
+    },
+    { "type": "direct", "tag": "direct" }
+  ]
+}
+EOF
+}
+
+setup_routes() {
+    echo "1" | sudo -S ip route add "$1" via "$VIA_WLO1" dev wlo1 2>/dev/null
+    echo "1" | sudo -S ip route add default via "$TUN_GW" dev tun0 metric 100 2>/dev/null
+}
+
+cleanup_routes() {
+    echo "1" | sudo -S ip route del default via "$TUN_GW" dev tun0 2>/dev/null
+    [ -n "$1" ] && echo "1" | sudo -S ip route del "$1" via "$VIA_WLO1" dev wlo1 2>/dev/null
+}
+
+do_stop() {
+    local vpn_ip=$(cat "$VPN_SERVER_FILE" 2>/dev/null)
+    echo "1" | sudo -S pkill sing-box 2>/dev/null
+    sleep 1
+    cleanup_routes "$vpn_ip"
+    rm -f /tmp/sing-box.pid "$VPN_SERVER_FILE" "$VPN_NAME_FILE"
+}
+
+try_server() {
+    local random_server="$1"
+
+    parsed=$(python3 -c "
+import urllib.parse
+line = '''$random_server'''
+name = urllib.parse.unquote(line.split('#')[1]) if '#' in line else 'Unknown'
+params_str = line.split('?')[1].split('#')[0]
+params = dict(p.split('=',1) for p in params_str.split('&') if '=' in p)
+host_port = line.split('@')[1].split('?')[0]
+h, p = host_port.split(':')
+uuid = line.split('@')[0][8:]
+print(f'{h}|{p}|{uuid}|{params.get(\"sni\",\"\")}|{params.get(\"pbk\",\"\")}|{params.get(\"sid\",\"\")}|{params.get(\"fp\",\"firefox\")}|{name}')
+" 2>/dev/null)
+    IFS='|' read -r host port uuid sni pbk sid fp name <<< "$parsed"
+
+    build_config "$host" "$port" "$uuid" "$sni" "$pbk" "$sid" "$fp"
+    echo "$host" > "$VPN_SERVER_FILE"
+    echo "Подключаюсь к $name..."
+
+    echo "1" | sudo -S /home/vlad/.local/bin/sing-box-start > "$LOG_FILE" 2>&1 &
+    echo $! > /tmp/sing-box.pid
+
+    # Ждём пока tun0 поднимется
+    for i in $(seq 1 10); do
+        sleep 1
+        if ip addr show tun0 2>/dev/null | grep -q "inet "; then
+            break
+        fi
+    done
+
+    sleep 2
+
+    ip=$(curl -x socks5h://127.0.0.1:10808 -s --max-time 5 https://api.ipify.org 2>&1)
+    if [ $? -eq 0 ] && [ -n "$ip" ]; then
+        echo "$name" > "$VPN_NAME_FILE"
+        echo "ON" > "$STATUS_FILE"
+        echo "VPN ВКЛ → $ip ($name)"
+        return 0
+    fi
+
+    do_stop
+    return 1
+}
+
+check_server() {
+    # TCP connect test — быстрее и надёжнее ping
+    local host="$1" port="$2"
+    timeout 3 bash -c "echo >/dev/tcp/$host/$port" 2>/dev/null
+}
+
+pick_alive_server() {
+    local servers="$1"
+    local alive=""
+    while IFS= read -r line; do
+        local host_port=$(echo "$line" | grep -oP '@\K[^?]+')
+        local h="${host_port%%:*}"
+        local p="${host_port##*:}"
+        if check_server "$h" "$p"; then
+            alive="${alive}${line}"$'\n'
+        fi
+    done <<< "$servers"
+    echo "$alive"
+}
+
+do_start() {
+    do_stop
+
+    if ! fetch_servers; then
+        echo "OFF" > "$STATUS_FILE"
+        echo "Серверы не загружены!"
+        return 1
+    fi
+
+    reality_servers=$(grep "security=reality" "$SERVERS_FILE")
+    if [ -z "$reality_servers" ]; then
+        echo "OFF" > "$STATUS_FILE"
+        echo "Reality серверы не найдены!"
+        return 1
+    fi
+
+    server_count=$(echo "$reality_servers" | wc -l)
+    echo "CONNECTING" > "$STATUS_FILE"
+
+    # Проверяю серверы — живые в приоритете
+    echo "Проверяю серверы..."
+    alive_servers=$(pick_alive_server "$reality_servers")
+    alive_count=$(echo "$alive_servers" | grep -c . 2>/dev/null)
+
+    if [ "$alive_count" -gt 0 ]; then
+        echo "Найдено живых: $alive_count из $server_count"
+        pick=$((RANDOM % alive_count + 1))
+        random_server=$(echo "$alive_servers" | sed -n "${pick}p")
+        try_server "$random_server" && return 0
+    fi
+
+    echo "Живые не ответили, пробую случайные..."
+    for i in 1 2 3; do
+        pick=$((RANDOM % server_count + 1))
+        random_server=$(echo "$reality_servers" | sed -n "${pick}p")
+        try_server "$random_server" && return 0
+    done
+
+    echo "OFF" > "$STATUS_FILE"
+    echo "Все серверы не ответили. Попробуй: vpn-toggle on"
+}
+
+case "$1" in
+    on)
+        if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
+            echo "VPN уже включён"
+        else
+            do_start
+        fi
+        ;;
+    off)
+        do_stop
+        echo "OFF" > "$STATUS_FILE"
+        echo "VPN ВЫКЛ"
+        ;;
+    toggle)
+        if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
+            do_stop
+            echo "OFF" > "$STATUS_FILE"
+            echo "VPN ВЫКЛ"
+        else
+            do_start
+        fi
+        ;;
+    status)
+        if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
+            ip=$(curl -x socks5h://127.0.0.1:10808 -s --max-time 5 https://api.ipify.org 2>&1)
+            echo "ON → $ip"
+        else
+            echo "OFF"
+        fi
+        ;;
+    list)
+        fetch_servers
+        grep "reality" "$SERVERS_FILE" | python3 -c "
+import sys, urllib.parse
+for i, line in enumerate(sys.stdin, 1):
+    name = urllib.parse.unquote(line.strip().split('#')[1]) if '#' in line else '?'
+    print(f'{i}. {name}')
+"
+        ;;
+    connect)
+        if [ -z "$2" ]; then
+            echo "Укажи номер: vpn-toggle connect 5"
+            exit 1
+        fi
+        do_stop
+        sleep 2
+        if ! fetch_servers; then
+            echo "OFF" > "$STATUS_FILE"
+            echo "Серверы не загружены!"
+            exit 1
+        fi
+        reality_servers=$(grep "security=reality" "$SERVERS_FILE")
+        server_count=$(echo "$reality_servers" | wc -l)
+        if [ "$2" -gt "$server_count" ] || [ "$2" -lt 1 ] 2>/dev/null; then
+            echo "Нет сервера #$2 (всего: $server_count)"
+            exit 1
+        fi
+        echo "CONNECTING" > "$STATUS_FILE"
+        target=$(echo "$reality_servers" | sed -n "${2}p")
+        if ! try_server "$target"; then
+            echo "OFF" > "$STATUS_FILE"
+            echo "Сервер #$2 не отвечает"
+        fi
+        ;;
+    *) echo "Использование: vpn-toggle {on|off|toggle|status|list|connect N}" ;;
+esac

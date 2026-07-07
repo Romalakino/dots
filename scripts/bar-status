@@ -1,0 +1,36 @@
+#!/bin/bash
+# Bar status for sway
+
+VPN_STATUS="/tmp/vpn-status"
+VPN_NAME="/tmp/vpn-server-name"
+
+while true; do
+    time=$(date +"%H:%M")
+    ram=$(free -h | awk '/Mem:/{print $3}')
+
+    if [ -f "$VPN_STATUS" ]; then
+        status=$(cat "$VPN_STATUS")
+        case "$status" in
+            ON*)
+                name=$(cat "$VPN_NAME" 2>/dev/null)
+                if [ -n "$name" ]; then
+                    short=$(echo "$name" | sed 's/ - .*//;s/ Антиглушилка.*//')
+                    num=$(echo "$name" | grep -oP '#\d+')
+                    vpn="● $short $num"
+                else
+                    vpn="● ON"
+                fi
+                ;;
+            OFF)        vpn="● OFF" ;;
+            SEARCH)     vpn="◎ search" ;;
+            CONNECTING) vpn="◎ connecting" ;;
+            FAILED)     vpn="● FAIL" ;;
+            *)          vpn="● --" ;;
+        esac
+    else
+        vpn="● OFF"
+    fi
+
+    echo " $vpn    $time    RAM $ram "
+    sleep 3
+done

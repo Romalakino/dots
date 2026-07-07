@@ -1,0 +1,42 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 28,
+    "spacing": 4,
+    "margin-top": 5,
+    "margin-left": 8,
+    "margin-right": 8,
+
+    "modules-left": ["sway/workspaces"],
+    "modules-center": ["clock"],
+    "modules-right": ["custom/vpn", "memory", "custom/power"],
+
+    "sway/workspaces": {
+        "format": "{name}",
+        "on-click": "activate",
+        "sort-by-number": true
+    },
+
+    "clock": {
+        "format": "󰥔 {:%H:%M}",
+        "interval": 1
+    },
+
+    "memory": {
+        "format": "RAM {percentage}%",
+        "interval": 5
+    },
+
+    "custom/vpn": {
+        "exec": "cat /tmp/vpn-status 2>/dev/null || echo OFF",
+        "format": "{}",
+        "interval": 3,
+        "return-type": "text"
+    },
+
+    "custom/power": {
+        "format": "PWR",
+        "on-click": "/home/vlad/.local/bin/power-menu",
+        "tooltip": false
+    }
+}
