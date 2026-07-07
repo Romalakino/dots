@@ -52,7 +52,13 @@ fi
 
 # Build menu list with numbers
 server_lines=()
-menu=""
+vpn_status=$(cat /tmp/vpn-status 2>/dev/null)
+if [ "$vpn_status" = "ON" ]; then
+    server_name=$(cat /tmp/vpn-server-name 2>/dev/null)
+    menu="■ OFF (${server_name})\n"
+else
+    menu="■ OFF\n"
+fi
 i=0
 while IFS= read -r line; do
     i=$((i + 1))
@@ -64,12 +70,17 @@ while IFS= read -r line; do
 done <<< "$reality_servers"
 
 # Show server list
-selected=$(echo -e "$menu" | wofi --dmenu -p "VPN Server" -W 400 -H 500 -I 2>/dev/null)
+selected=$(echo -e "$menu" | wofi --dmenu -p "VPN" -W 400 -H 550 -I 2>/dev/null)
 if [ -z "$selected" ]; then
     exit 0
 fi
 
 # Extract number from selection
+if echo "$selected" | grep -q "^■ OFF"; then
+    /home/vlad/.local/bin/vpn-toggle off
+    exit 0
+fi
+
 num=$(echo "$selected" | grep -oP '^\d+')
 if [ -z "$num" ] || [ "$num" -gt "${#server_lines[@]}" ]; then
     exit 1
