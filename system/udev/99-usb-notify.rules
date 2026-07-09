@@ -1,0 +1,2 @@
+ACTION=="add", SUBSYSTEM=="block", RUN+="/usr/local/bin/usb-event mount %k"
+ACTION=="remove", SUBSYSTEM=="block", RUN+="/usr/local/bin/usb-event unmount %k"

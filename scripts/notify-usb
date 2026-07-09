@@ -1,0 +1,29 @@
+#!/bin/bash
+# USB mount/unmount notification
+# Called by udev via usb-event with env vars: DEVNAME, ID_LABEL, ID_FS_LABEL, DEVTYPE
+
+NOTIFY_ID=777003
+ACTION="$1"
+DEVICE="$2"
+
+# Try to get label from udev env or lsblk
+label=""
+for var in ID_FS_LABEL ID_LABEL; do
+    [ -n "${!var}" ] && label="${!var}" && break
+done
+[ -z "$label" ] && label=$(lsblk -no LABEL "/dev/$DEVICE" 2>/dev/null | head -1)
+[ -z "$label" ] && label="USB Disk"
+
+size=$(lsblk -no SIZE "/dev/$DEVICE" 2>/dev/null | head -1)
+[ -z "$size" ] && size="?"
+
+case "$ACTION" in
+    mount)
+        notify-send -r "$NOTIFY_ID" -t 3000 \
+            "💾  Disk connected" "$label — $size"
+        ;;
+    unmount)
+        notify-send -r "$NOTIFY_ID" -t 3000 \
+            "⏏  Disk removed" "$label — $size"
+        ;;
+esac

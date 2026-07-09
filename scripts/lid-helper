@@ -1,0 +1,22 @@
+#!/bin/bash
+# Root helper for lid-toggle — called via sudo
+# Args: on|off
+
+STATE_FILE="/tmp/lid-toggle-state"
+ACTION="${1:-}"
+
+if [ "$ACTION" = "on" ]; then
+    cp /etc/elogind/logind.conf /tmp/logind.conf
+    sed -i 's/^#HandleLidSwitch=.*/HandleLidSwitch=ignore/' /tmp/logind.conf
+    sed -i 's/^#HandleLidSwitchDocked=.*/HandleLidSwitchDocked=ignore/' /tmp/logind.conf
+    cp /tmp/logind.conf /etc/elogind/logind.conf
+    kill -SIGHUP $(pgrep elogind) 2>/dev/null
+    echo "on" > "$STATE_FILE"
+elif [ "$ACTION" = "off" ]; then
+    cp /etc/elogind/logind.conf /tmp/logind.conf
+    sed -i 's/^HandleLidSwitch=.*/#HandleLidSwitch=suspend/' /tmp/logind.conf
+    sed -i 's/^HandleLidSwitchDocked=.*/#HandleLidSwitchDocked=ignore/' /tmp/logind.conf
+    cp /tmp/logind.conf /etc/elogind/logind.conf
+    kill -SIGHUP $(pgrep elogind) 2>/dev/null
+    echo "off" > "$STATE_FILE"
+fi

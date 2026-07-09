@@ -1,0 +1,12 @@
+#!/bin/sh
+echo "Жду Jellyfin..."
+for i in $(seq 1 15); do
+    if sg docker -c "docker ps --filter name=jellyfin --format '{{.Status}}'" 2>/dev/null | grep -q healthy; then
+        ip=$(ip -4 -o addr show wlo1 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
+        echo "Jellyfin: http://$ip:8096"
+        exit 0
+    fi
+    sleep 1
+done
+echo "Jellyfin не запустился. Попробуй: jellyfin-start"
+exit 1

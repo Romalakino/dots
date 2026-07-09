@@ -28,13 +28,14 @@ bindsym Print exec ~/.local/bin/screenshot
 bindsym --to-code $mod+Alt+c exec clipman pick -d wofi
 
 # Audio
-bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
-bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
-bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
+exec pipewire && wireplumber
+bindsym XF86AudioRaiseVolume exec ~/.local/bin/notify-volume up
+bindsym XF86AudioLowerVolume exec ~/.local/bin/notify-volume down
+bindsym XF86AudioMute exec ~/.local/bin/notify-volume mute
 
 # Brightness
-bindsym XF86MonBrightnessUp exec brightnessctl set +5%
-bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
+bindsym XF86MonBrightnessUp exec ~/.local/bin/notify-brightness up
+bindsym XF86MonBrightnessDown exec ~/.local/bin/notify-brightness down
 
 # VPN
 bindsym --to-code $mod+Alt+v exec /home/vlad/.local/bin/vpn-toggle toggle
@@ -87,6 +88,8 @@ bindsym --to-code $mod+7 workspace number $ws7
 bindsym --to-code $mod+8 workspace number $ws8
 bindsym --to-code $mod+9 workspace number $ws9
 bindsym --to-code $mod+0 workspace number $ws10
+
+workspace 1 output HDMI-A-1 eDP-1
 
 bindsym --to-code $mod+Shift+1 move container to workspace number $ws1
 bindsym --to-code $mod+Shift+2 move container to workspace number $ws2
@@ -150,6 +153,11 @@ exec dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY DBUS_S
 
 # Output
 output eDP-1 scale 1.5
+output HDMI-A-1 mode 3440x1440@100Hz
+exec ~/.local/bin/monitor-detect
+bindsym --to-code $mod+m exec ~/.local/bin/monitor-detect
+bindsym --to-code $mod+Alt+o exec ~/.local/bin/output-toggle
+bindsym --to-code $mod+Alt+l exec ~/.local/bin/lid-toggle
 
 # Appearance — Catppuccin Mocha
 default_border pixel 3

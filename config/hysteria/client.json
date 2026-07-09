@@ -1,0 +1,14 @@
+{
+  "server": "2.26.16.14:8443",
+  "auth": "a3K7x0TQEe78fj47",
+  "tls": {
+    "sni": "kakanjomba.publicvm.com",
+    "insecure": true
+  },
+  "socks5": {
+    "listen": "127.0.0.1:1080"
+  },
+  "tcpRedirect": {
+    "listen": "127.0.0.1:3500"
+  }
+}

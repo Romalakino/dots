@@ -1,0 +1,29 @@
+#!/bin/bash
+# Toggle lid close behavior
+# ON = ignore lid (only with external monitor)
+# OFF = suspend on lid close
+
+export PATH="$HOME/.local/bin:$PATH"
+STATE_FILE="/tmp/lid-toggle-state"
+
+if [ -f "$STATE_FILE" ] && [ "$(cat $STATE_FILE)" = "on" ]; then
+    echo "1" | sudo -S /home/vlad/.local/bin/lid-helper off 2>/dev/null
+    notify-send "Lid" "Close lid = suspend"
+else
+    HDMI=$(swaymsg -t get_outputs 2>/dev/null | python3 -c "
+import json, sys
+outputs = json.load(sys.stdin)
+for o in outputs:
+    if o['name'] == 'HDMI-A-1' and o['active']:
+        sys.exit(0)
+sys.exit(1)
+" 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        notify-send "Lid" "No external monitor!"
+        exit 1
+    fi
+
+    echo "1" | sudo -S /home/vlad/.local/bin/lid-helper on 2>/dev/null
+    notify-send "Lid" "Close lid = nothing"
+fi

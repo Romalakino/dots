@@ -1,0 +1,36 @@
+{
+  "log": { "level": "warn" },
+  "dns": {
+    "servers": [
+      { "address": "1.1.1.1", "detour": "direct" }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun", "tag": "tun-in", "interface_name": "tun0",
+      "inet4_address": "172.19.0.1/30",
+      "auto_route": true, "stack": "system"
+    },
+    { "type": "socks", "tag": "socks-in", "listen": "127.0.0.1", "listen_port": 10808 },
+    { "type": "http", "tag": "http-in", "listen": "127.0.0.1", "listen_port": 10809 }
+  ],
+  "route": {
+    "rules": [
+      { "ip_cidr": ["193.33.133.165/32"], "outbound": "direct" },
+      { "ip_is_private": true, "outbound": "direct" },
+      { "protocol": "dns", "outbound": "direct" }
+    ],
+    "auto_detect_interface": true
+  },
+  "outbounds": [
+    {
+      "type": "vless", "tag": "proxy", "server": "193.33.133.165", "server_port": 2443, "uuid": "30f19571-6229-42d2-9b2d-07b395ae239b", "flow": "xtls-rprx-vision",
+      "tls": {
+        "enabled": true, "server_name": "fi1.foxnezia.dev",
+        "utls": { "enabled": true, "fingerprint": "firefox" },
+        "reality": { "enabled": true, "public_key": "Ga_FpKnw8ZXngh86KkciKc7SrKNljVat1_8fkyVWbjY", "short_id": "4fd3840415403f31" }
+      }
+    },
+    { "type": "direct", "tag": "direct" }
+  ]
+}

@@ -1,0 +1,39 @@
+#!/bin/bash
+# VPN transparent proxy via iptables + sing-box HTTP proxy
+
+PROXY_PORT=10809
+PROXY_IP=127.0.0.1
+LAN_IP=$(ip -4 addr show wlo1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+
+case "$1" in
+  on)
+    # Redirect all TCP to proxy
+    echo "1" | sudo -S iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-ports $PROXY_PORT
+    # Don't proxy proxy itself
+    echo "1" | sudo -S iptables -t nat -I OUTPUT -p tcp -d $PROXY_IP -j RETURN
+    # Don't proxy LAN
+    echo "1" | sudo -S iptables -t nat -I OUTPUT -p tcp -d 192.168.0.0/16 -j RETURN
+    # Don't proxy DNS (use proxy DNS)
+    echo "1" | sudo -S iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-ports 53
+    echo "ON" > /tmp/vpn-status
+    echo "VPN ON"
+    ;;
+  off)
+    echo "1" | sudo -S iptables -t nat -F OUTPUT
+    echo "OFF" > /tmp/vpn-status
+    echo "VPN OFF"
+    ;;
+  toggle)
+    if [ "$(cat /tmp/vpn-status 2>/dev/null)" = "ON" ]; then
+      $0 off
+    else
+      $0 on
+    fi
+    ;;
+  status)
+    cat /tmp/vpn-status 2>/dev/null || echo "OFF"
+    ;;
+  *)
+    echo "Usage: $0 {on|off|toggle|status}"
+    ;;
+esac

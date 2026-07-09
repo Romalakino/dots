@@ -1,5 +1,19 @@
-# Void Linux Setup
+# Ignore system-specific generated files
 /tmp/
 *.bak
 *.bak.*
+*.swp
+*~
 
+# Sensitive data (tokens, keys)
+**/gh/hosts.yml
+**/gh/config.yml
+**/PolyMC/accounts.json
+**/notes.txt
+
+# Cache and generated data
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

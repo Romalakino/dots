@@ -1,0 +1,38 @@
+#!/bin/bash
+# Toggle between HDMI-only and laptop-only display
+# HDMI = lid ignore, laptop = lid suspend
+
+export PATH="$HOME/.local/bin:$PATH"
+STATE_FILE="/tmp/output-toggle-state"
+
+get_active() {
+    swaymsg -t get_outputs 2>/dev/null | python3 -c "
+import json, sys
+outputs = json.load(sys.stdin)
+for o in outputs:
+    if o['active']:
+        print(o['name'])
+"
+}
+
+set_lid() {
+    if [ "$1" = "ignore" ]; then
+        echo "1" | sudo -S /home/vlad/.local/bin/lid-helper on 2>/dev/null
+    else
+        echo "1" | sudo -S /home/vlad/.local/bin/lid-helper off 2>/dev/null
+    fi
+}
+
+current=$(get_active)
+
+if echo "$current" | grep -q "HDMI-A-1"; then
+    # HDMI is on — switch to laptop only
+    swaymsg output HDMI-A-1 disable
+    swaymsg output eDP-1 pos 0 0 scale 1.5 enable
+    set_lid suspend
+else
+    # Laptop is on — switch to HDMI only
+    swaymsg output eDP-1 disable
+    swaymsg output HDMI-A-1 pos 0 0 mode 3440x1440@100Hz scale 1 enable
+    set_lid ignore
+fi

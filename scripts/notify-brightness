@@ -1,0 +1,43 @@
+#!/bin/bash
+# Brightness notification with progress bar
+# Usage: notify-brightness up|down
+
+NOTIFY_ID=777002
+
+get_brightness() {
+    brightnessctl -m | awk -F, '{print $4}' | tr -d '%'
+}
+
+max_brightness() {
+    brightnessctl -m | awk -F, '{print $3}'
+}
+
+bar() {
+    local vol=$1
+    local filled=$((vol / 5))
+    local empty=$((20 - filled))
+    local bars=""
+    for ((i=0; i<filled; i++)); do bars+="█"; done
+    for ((i=0; i<empty; i++)); do bars+="░"; done
+    echo "$bars"
+}
+
+case "$1" in
+    up)
+        brightnessctl set +5%
+        ;;
+    down)
+        brightnessctl set 5%-
+        ;;
+    *)
+        echo "Usage: notify-brightness up|down"
+        exit 1
+        ;;
+esac
+
+sleep 0.1
+cur=$(get_brightness)
+b=$(bar "$cur")
+
+notify-send -r "$NOTIFY_ID" -t 1500 -h int:value:"$cur" -h string:hlcolor:"#ffffff" \
+    "☀  Brightness" "$b  ${cur}%"

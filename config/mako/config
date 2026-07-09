@@ -4,7 +4,7 @@ font=JetBrainsMono Nerd Font 11
 format=<b>%s</b>\n%b
 icons=1
 max-icon-size=48
-default-timeout=5000
+default-timeout=2000
 ignore-timeout=0
 layer=overlay
 sort=-time
@@ -16,6 +16,7 @@ height=400
 border-radius=0
 border-size=2
 max-history=20
+max-visible=1
 
 background-color=#000000
 text-color=#ffffff

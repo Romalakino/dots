@@ -1,0 +1,1 @@
+vlad ALL=(root) NOPASSWD: /home/vlad/.local/bin/lid-helper

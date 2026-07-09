@@ -1,0 +1,11 @@
+#!/bin/bash
+# udev event handler for USB devices
+# Called from /etc/udev/rules.d/99-usb-notify.rules
+
+ACTION="$1"
+DEVICE="$2"
+
+# Wait for udisks2 to finish mounting
+sleep 0.5
+
+/usr/bin/notify-usb "$ACTION" "$DEVICE"

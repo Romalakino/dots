@@ -1,0 +1,57 @@
+#!/bin/bash
+# Volume notification with progress bar
+# Usage: notify-volume up|down|mute
+
+NOTIFY_ID=777001
+
+get_volume() {
+    pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\d+%' | head -1 | tr -d '%'
+}
+
+is_muted() {
+    pactl get-sink-mute @DEFAULT_SINK@ | grep -q "yes"
+}
+
+bar() {
+    local vol=$1
+    local filled=$((vol / 5))
+    local empty=$((20 - filled))
+    local bars=""
+    for ((i=0; i<filled; i++)); do bars+="█"; done
+    for ((i=0; i<empty; i++)); do bars+="░"; done
+    echo "$bars"
+}
+
+case "$1" in
+    up)
+        pactl set-sink-volume @DEFAULT_SINK@ +5%
+        ;;
+    down)
+        pactl set-sink-volume @DEFAULT_SINK@ -5%
+        ;;
+    mute)
+        pactl set-sink-mute @DEFAULT_SINK@ toggle
+        ;;
+    *)
+        echo "Usage: notify-volume up|down|mute"
+        exit 1
+        ;;
+esac
+
+sleep 0.1
+vol=$(get_volume)
+b=$(bar "$vol")
+
+if is_muted; then
+    notify-send -r "$NOTIFY_ID" -t 1500 -h int:value:"$vol" -h string:hlcolor:"#ffffff" \
+        "🔇  Muted" "$b  ${vol}%"
+else
+    icon="🔊"
+    if [ "$vol" -lt 30 ]; then
+        icon="🔈"
+    elif [ "$vol" -lt 70 ]; then
+        icon="🔉"
+    fi
+    notify-send -r "$NOTIFY_ID" -t 1500 -h int:value:"$vol" -h string:hlcolor:"#ffffff" \
+        "$icon  Volume" "$b  ${vol}%"
+fi

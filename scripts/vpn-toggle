@@ -118,11 +118,13 @@ print(f'{h}|{p}|{uuid}|{params.get(\"sni\",\"\")}|{params.get(\"pbk\",\"\")}|{pa
     if [ $? -eq 0 ] && [ -n "$ip" ]; then
         echo "$name" > "$VPN_NAME_FILE"
         echo "ON" > "$STATUS_FILE"
+        notify-send -r 777004 -t 3000 "●  VPN ON" "$name — $ip"
         echo "VPN ВКЛ → $ip ($name)"
         return 0
     fi
 
     do_stop
+    notify-send -r 777004 -t 3000 "✕  VPN ERROR" "Server not responding"
     return 1
 }
 
@@ -199,12 +201,14 @@ case "$1" in
     off)
         do_stop
         echo "OFF" > "$STATUS_FILE"
+        notify-send -r 777004 -t 3000 "○  VPN OFF" "Connection closed"
         echo "VPN ВЫКЛ"
         ;;
     toggle)
         if [ -f "$STATUS_FILE" ] && [ "$(cat $STATUS_FILE)" = "ON" ]; then
             do_stop
             echo "OFF" > "$STATUS_FILE"
+            notify-send -r 777004 -t 3000 "○  VPN OFF" "Connection closed"
             echo "VPN ВЫКЛ"
         else
             do_start

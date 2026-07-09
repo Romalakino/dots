@@ -1,0 +1,27 @@
+#!/bin/bash
+# Auto-detect monitor and configure layout
+# HDMI-A-1 (ultrawide) = primary, eDP-1 (laptop) disabled when HDMI connected
+# Also manages lid: ignore when HDMI, suspend when laptop only
+
+export PATH="$HOME/.local/bin:$PATH"
+
+HDMIConnected() {
+    swaymsg -t get_outputs 2>/dev/null | python3 -c "
+import json, sys
+outputs = json.load(sys.stdin)
+for o in outputs:
+    if o['name'] == 'HDMI-A-1' and o['active']:
+        sys.exit(0)
+sys.exit(1)
+" 2>/dev/null
+}
+
+if HDMIConnected; then
+    swaymsg output HDMI-A-1 pos 0 0 mode 3440x1440@100Hz scale 1 enable
+    swaymsg output eDP-1 disable
+    echo "1" | sudo -S /home/vlad/.local/bin/lid-helper on 2>/dev/null
+else
+    swaymsg output eDP-1 pos 0 0 scale 1.5 enable
+    swaymsg output HDMI-A-1 disable
+    echo "1" | sudo -S /home/vlad/.local/bin/lid-helper off 2>/dev/null
+fi

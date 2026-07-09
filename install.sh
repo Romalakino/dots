@@ -151,7 +151,7 @@ log "Installing dotfiles..."
 CONFIG_DIR="$HOME/.config"
 
 # Backup existing configs
-for dir in sway waybar foot wofi mako swaylock gtk-3.0 gtk-4.0 fastfetch; do
+for dir in sway waybar foot wofi mako swaylock gtk-3.0 gtk-4.0 fastfetch bash git icons sing-box hysteria; do
     [ -d "$CONFIG_DIR/$dir" ] && mv "$CONFIG_DIR/$dir" "$CONFIG_DIR/$dir.bak.$(date +%s)" 2>/dev/null
 done
 
@@ -164,6 +164,18 @@ cp -r "$SCRIPT_DIR/config/swaylock" "$CONFIG_DIR/"
 cp -r "$SCRIPT_DIR/config/gtk-3.0" "$CONFIG_DIR/"
 cp -r "$SCRIPT_DIR/config/gtk-4.0" "$CONFIG_DIR/"
 cp -r "$SCRIPT_DIR/config/fastfetch" "$CONFIG_DIR/"
+# Shell configs
+for f in bashrc bash_profile bash_logout xprofile Xresources inputrc; do
+    [ -f "$SCRIPT_DIR/config/bash/$f" ] && cp "$SCRIPT_DIR/config/bash/$f" "$HOME/.$f"
+done
+# Git config
+[ -f "$SCRIPT_DIR/config/git/config" ] && cp "$SCRIPT_DIR/config/git/config" "$HOME/.gitconfig"
+# Cursor icons
+[ -d "$SCRIPT_DIR/config/icons" ] && cp -r "$SCRIPT_DIR/config/icons" "$HOME/.icons/"
+# VPN configs
+for dir in sing-box hysteria; do
+    [ -d "$SCRIPT_DIR/config/$dir" ] && mkdir -p "$HOME/.config/$dir" && cp -r "$SCRIPT_DIR/config/$dir/"* "$HOME/.config/$dir/"
+done
 
 # ============================================
 # 14. SCRIPTS
@@ -177,44 +189,27 @@ chmod +x "$HOME/.local/bin/"*
 # 15. SUDOERS
 # ============================================
 log "Configuring sudoers..."
-sudo tee /etc/sudoers.d/vlad-vpn > /dev/null << 'EOF'
-vlad ALL=(root) NOPASSWD: /usr/bin/iptables
-vlad ALL=(root) NOPASSWD: /home/vlad/.config/hysteria/iptables.sh
-vlad ALL=(root) NOPASSWD: /sbin/shutdown
-vlad ALL=(root) NOPASSWD: /sbin/reboot
-EOF
+for f in "$SCRIPT_DIR/system/sudoers/"*; do
+    [ -f "$f" ] && sudo cp "$f" "/etc/sudoers.d/$(basename "$f")"
+done
 
 # ============================================
 # 16. DNS FIX
 # ============================================
-log "Fixing DNS (removing 0.0.0.0)..."
-echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf.head > /dev/null
+log "Fixing DNS..."
+if [ -f "$SCRIPT_DIR/system/resolv.conf.head" ]; then
+    sudo cp "$SCRIPT_DIR/system/resolv.conf.head" /etc/resolv.conf.head
+else
+    echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf.head > /dev/null
+fi
 sudo sed -i '/nameserver 0.0.0.0/d' /etc/resolv.conf 2>/dev/null || true
 
 # ============================================
-# 17. CURSOR ENV
+# 17. CURSOR ENV + SHELL CONFIG
 # ============================================
-log "Setting cursor environment..."
-cat > "$HOME/.bash_profile" << 'BASHEOF'
-# Cursor
-export XCURSOR_THEME=Bibata-Modern-Ice
-export XCURSOR_SIZE=20
-
-# GTK
-export GTK_THEME=Adwaita-dark
-export GDK_SCALE=1
-export GDK_DPI_SCALE=1
-
-# Wayland
-export MOZ_ENABLE_WAYLAND=1
-export QT_QPA_PLATFORM=wayland
-export XDG_SESSION_TYPE=wayland
-
-# Start Sway on TTY1
-if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-    exec sway
-fi
-BASHEOF
+log "Setting up shell configs..."
+[ -f "$SCRIPT_DIR/config/bash/bash_profile" ] && cp "$SCRIPT_DIR/config/bash/bash_profile" "$HOME/.bash_profile"
+[ -f "$SCRIPT_DIR/config/bash/xprofile" ] && cp "$SCRIPT_DIR/config/bash/xprofile" "$HOME/.xprofile"
 
 # ============================================
 # 18. GTK CURSOR
@@ -241,14 +236,24 @@ Inherits=Bibata-Modern-Ice
 CURSOREOF
 
 # ============================================
-# 19. ENABLE SERVICES
+# 19. SYSTEM CONFIG FILES (ACPI, UDEV)
+# ============================================
+log "Installing system configs..."
+if [ -f "$SCRIPT_DIR/system/acpi/handler.sh" ]; then
+    sudo cp "$SCRIPT_DIR/system/acpi/handler.sh" /etc/acpi/handler.sh
+fi
+if [ -f "$SCRIPT_DIR/system/udev/99-usb-notify.rules" ]; then
+    sudo cp "$SCRIPT_DIR/system/udev/99-usb-notify.rules" /etc/udev/rules.d/
+fi
+
+# ============================================
+# 21. ENABLE SERVICES
 # ============================================
 log "Enabling services..."
 sudo ln -sf /etc/sv/dbus /var/service/ 2>/dev/null || true
 sudo ln -sf /etc/sv/chrony /var/service/ 2>/dev/null || true
 sudo ln -sf /etc/sv/acpid /var/service/ 2>/dev/null || true
 sudo ln -sf /etc/sv/elogind /var/service/ 2>/dev/null || true
-sudo ln -sf /etc/sv/dockerd /var/service/ 2>/dev/null || true
 
 # ============================================
 # DONE

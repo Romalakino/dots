@@ -1,0 +1,36 @@
+# .bash_profile
+
+# Get the aliases and functions
+[ -f $HOME/.bashrc ] && . $HOME/.bashrc
+
+# Environment variables
+export GTK_THEME=Adwaita:dark
+export GTK_APPLICATION_PREFER_DARK_THEME=1
+export GDK_SCALE=1
+export GDK_DPI_SCALE=0.75
+export MOZ_ENABLE_WAYLAND=1
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:+$XDG_DATA_DIRS:}/usr/local/share:/usr/share"
+export XCURSOR_THEME=Bibata-Modern-Ice
+export XCURSOR_SIZE=20
+
+# VPN proxy (set when VPN is on via vpn-toggle)
+if [ -f /tmp/vpn-status ] && [ "$(cat /tmp/vpn-status 2>/dev/null)" = "ON" ]; then
+    export ALL_PROXY=socks5://127.0.0.1:10808
+    export all_proxy=socks5://127.0.0.1:10808
+    export HTTPS_PROXY=socks5://127.0.0.1:10808
+    export http_proxy=socks5://127.0.0.1:10808
+    export HTTP_PROXY=socks5://127.0.0.1:10808
+    export no_proxy=localhost,127.0.0.1,192.168.0.0/16
+fi
+
+# PipeWire audio
+if ! pgrep -x pipewire > /dev/null; then
+    pipewire &
+    sleep 1
+    wireplumber &
+fi
+
+# Auto-start sway on TTY login
+if [ -z "$WAYLAND_DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    exec sway
+fi

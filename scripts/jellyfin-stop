@@ -1,0 +1,3 @@
+#!/bin/sh
+sg docker -c "docker stop jellyfin"
+echo "Jellyfin остановлен"
